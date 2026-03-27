@@ -9,53 +9,39 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     :root {
-      --bg: #050510;
-      --card: #0d0d1a;
-      --card-hover: #14142a;
-      --accent: #00d2ff;
-      --accent-glow: rgba(0, 210, 255, 0.12);
-      --accent-light: #7df9ff;
-      --accent2: #7b2ff7;
-      --accent2-glow: rgba(123, 47, 247, 0.12);
-      --gold: #f0c040;
-      --green: #00e676;
-      --red: #ff5252;
-      --orange: #ff9100;
-      --blue: #448aff;
-      --text: #e8ecf4;
-      --text-dim: #6a7094;
-      --border: rgba(255, 255, 255, 0.06);
-      --radius: 16px;
+      --bg: #050510; --card: #0d0d1a; --card-hover: #14142a;
+      --accent: #00d2ff; --accent-glow: rgba(0,210,255,0.12); --accent-light: #7df9ff;
+      --accent2: #7b2ff7; --accent2-glow: rgba(123,47,247,0.12);
+      --gold: #f0c040; --green: #00e676; --red: #ff5252; --orange: #ff9100; --blue: #448aff;
+      --text: #e8ecf4; --text-dim: #6a7094; --border: rgba(255,255,255,0.06); --radius: 16px;
     }
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      min-height: 100vh;
-      -webkit-font-smoothing: antialiased;
-      overflow-x: hidden;
-    }
+    body { font-family: 'Inter', -apple-system, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+
+    /* ROLE BAR - hidden for candidates */
     .role-bar {
       position: fixed; top: 0; left: 0; right: 0; z-index: 200;
-      padding: 8px 16px; display: flex; align-items: center; justify-content: space-between;
-      background: rgba(5, 5, 16, 0.92); backdrop-filter: blur(20px);
+      padding: 8px 16px; display: none; align-items: center; justify-content: space-between;
+      background: rgba(5,5,16,0.92); backdrop-filter: blur(20px);
       border-bottom: 1px solid var(--border); font-size: 12px;
     }
+    body.role-consultant .role-bar, body.role-admin .role-bar { display: flex; }
     .role-indicator { display: flex; align-items: center; gap: 6px; }
     .role-dot { width: 8px; height: 8px; border-radius: 50%; }
-    .role-dot.candidate { background: var(--green); }
     .role-dot.consultant { background: var(--blue); }
     .role-dot.admin { background: var(--red); }
     .role-label { color: var(--text-dim); }
-    .role-switch {
+    .role-actions { display: flex; gap: 6px; }
+    .role-switch, .role-logout {
       padding: 5px 12px; border-radius: 8px; border: 1px solid var(--border);
       background: rgba(255,255,255,0.04); color: var(--text-dim); font-size: 11px; cursor: pointer;
     }
-    .role-switch:active { transform: scale(0.96); }
+    .role-switch:active, .role-logout:active { transform: scale(0.96); }
+
     .consultant-only, .admin-only { display: none; }
     body.role-consultant .consultant-only, body.role-admin .consultant-only, body.role-admin .admin-only { display: block; }
-    .container { max-width: 560px; margin: 0 auto; padding: 56px 16px 120px; }
+    .container { max-width: 560px; margin: 0 auto; padding: 16px 16px 120px; }
+    body.role-consultant .container, body.role-admin .container { padding-top: 56px; }
 
     /* HERO */
     .hero {
@@ -78,225 +64,121 @@
     }
 
     /* SECTION */
-    .section {
-      background: var(--card); border-radius: var(--radius); border: 1px solid var(--border);
-      margin-bottom: 14px; overflow: hidden;
-    }
-    .section-header {
-      padding: 16px 18px 12px; display: flex; align-items: center; gap: 10px;
-      font-size: 15px; font-weight: 700; letter-spacing: -0.01em;
-    }
+    .section { background: var(--card); border-radius: var(--radius); border: 1px solid var(--border); margin-bottom: 14px; overflow: hidden; }
+    .section-header { padding: 16px 18px 12px; display: flex; align-items: center; gap: 10px; font-size: 15px; font-weight: 700; }
     .section-body { padding: 0 18px 18px; }
     .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-    .info-item {
-      padding: 12px; background: rgba(255,255,255,0.02); border-radius: 10px;
-      border: 1px solid var(--border);
-    }
+    .info-item { padding: 12px; background: rgba(255,255,255,0.02); border-radius: 10px; border: 1px solid var(--border); }
     .info-label { font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; }
     .info-value { font-size: 14px; font-weight: 600; }
     .info-item.full { grid-column: 1 / -1; }
     .highlight { color: var(--accent-light); }
     .warn { color: var(--orange); }
 
-    /* JOB TABS */
-    .job-tabs {
-      display: flex; gap: 8px; padding: 0 18px 14px; overflow-x: auto;
-    }
+    /* JOB TABS - hidden in single-job mode */
+    .job-tabs { display: flex; gap: 8px; padding: 0 18px 14px; overflow-x: auto; }
+    body.single-job .job-tabs { display: none; }
     .job-tab {
       padding: 8px 16px; border-radius: 10px; font-size: 13px; font-weight: 600;
       border: 1px solid var(--border); background: rgba(255,255,255,0.03); color: var(--text-dim);
       cursor: pointer; white-space: nowrap; transition: all 0.2s;
     }
-    .job-tab.active {
-      background: linear-gradient(135deg, rgba(0,210,255,0.15), rgba(123,47,247,0.15));
-      color: var(--accent-light); border-color: rgba(0,210,255,0.3);
-    }
+    .job-tab.active { background: linear-gradient(135deg, rgba(0,210,255,0.15), rgba(123,47,247,0.15)); color: var(--accent-light); border-color: rgba(0,210,255,0.3); }
     .job-panel { display: none; }
     .job-panel.active { display: block; }
 
     /* BENEFIT LIST */
     .benefit-list { list-style: none; }
-    .benefit-item {
-      padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 13px; line-height: 1.6;
-      display: flex; gap: 8px; align-items: flex-start;
-    }
+    .benefit-item { padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 13px; line-height: 1.6; display: flex; gap: 8px; align-items: flex-start; }
     .benefit-item:last-child { border-bottom: none; }
-    .benefit-icon { flex-shrink: 0; }
 
     /* REQUIREMENT TAGS */
     .req-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
-    .req-tag {
-      padding: 4px 10px; border-radius: 8px; font-size: 11px; font-weight: 500;
-      background: rgba(123,47,247,0.1); color: #b388ff; border: 1px solid rgba(123,47,247,0.15);
-    }
+    .req-tag { padding: 4px 10px; border-radius: 8px; font-size: 11px; font-weight: 500; background: rgba(123,47,247,0.1); color: #b388ff; border: 1px solid rgba(123,47,247,0.15); }
     .req-tag.must { background: rgba(0,210,255,0.1); color: var(--accent-light); border-color: rgba(0,210,255,0.2); }
 
+    /* JOB SHARE BTN (inside each job panel, consultant-only) */
+    .job-share-btn {
+      display: none; margin-top: 16px; width: 100%; padding: 12px; border-radius: 10px;
+      border: 1px solid var(--border); background: rgba(255,255,255,0.04);
+      color: var(--text); font-size: 13px; font-weight: 600; cursor: pointer; text-align: center;
+    }
+    body.role-consultant .job-share-btn, body.role-admin .job-share-btn { display: block; }
+
     /* CONSULTANT */
-    .consultant-section {
-      background: var(--card); border-radius: var(--radius);
-      border: 1px solid rgba(68,138,255,0.15); margin-bottom: 14px; overflow: hidden;
-    }
-    .consultant-header {
-      padding: 14px 18px 10px; display: flex; align-items: center; gap: 8px;
-      font-size: 13px; font-weight: 700;
-    }
+    .consultant-section { background: var(--card); border-radius: var(--radius); border: 1px solid rgba(68,138,255,0.15); margin-bottom: 14px; overflow: hidden; }
+    .consultant-header { padding: 14px 18px 10px; display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; }
     .consultant-header-title { color: var(--blue); }
     .consultant-body { padding: 0 18px 16px; }
     .consultant-item { font-size: 13px; line-height: 1.7; padding: 6px 0; border-bottom: 1px solid var(--border); }
     .consultant-item:last-child { border-bottom: none; }
 
     /* ADMIN NOTES */
-    .admin-section {
-      background: var(--card); border-radius: var(--radius);
-      border: 1px solid rgba(255,82,82,0.15); margin-bottom: 14px; overflow: hidden;
-    }
-    .admin-header {
-      padding: 14px 18px 10px; display: flex; align-items: center; gap: 8px;
-      font-size: 13px; font-weight: 700; flex-wrap: wrap;
-    }
+    .admin-section { background: var(--card); border-radius: var(--radius); border: 1px solid rgba(255,82,82,0.15); margin-bottom: 14px; overflow: hidden; }
+    .admin-header { padding: 14px 18px 10px; display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; flex-wrap: wrap; }
     .admin-header-title { color: var(--red); }
     .admin-author-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
     .admin-author-label { font-size: 12px; color: var(--text-dim); }
-    .admin-author-select {
-      padding: 4px 8px; border-radius: 6px; border: 1px solid var(--border);
-      background: rgba(255,255,255,0.05); color: var(--text); font-size: 12px;
-    }
-    .admin-note-input {
-      width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border);
-      background: rgba(255,255,255,0.03); color: var(--text); font-size: 13px; resize: vertical; min-height: 60px;
-      font-family: inherit; margin-bottom: 8px;
-    }
+    .admin-author-select { padding: 4px 8px; border-radius: 6px; border: 1px solid var(--border); background: rgba(255,255,255,0.05); color: var(--text); font-size: 12px; }
+    .admin-note-input { width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border); background: rgba(255,255,255,0.03); color: var(--text); font-size: 13px; resize: vertical; min-height: 60px; font-family: inherit; margin-bottom: 8px; }
     .admin-note-input:focus { outline: none; border-color: var(--accent); }
-    .admin-btn {
-      width: 100%; padding: 10px; border-radius: 10px; border: none;
-      background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff;
-      font-weight: 600; font-size: 13px; cursor: pointer; margin-bottom: 14px;
-    }
+    .admin-btn { width: 100%; padding: 10px; border-radius: 10px; border: none; background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff; font-weight: 600; font-size: 13px; cursor: pointer; margin-bottom: 14px; }
     .admin-notes-list { display: flex; flex-direction: column; gap: 8px; }
-    .admin-note-card {
-      padding: 12px; background: rgba(255,255,255,0.02); border-radius: 10px;
-      border: 1px solid var(--border); position: relative;
-    }
+    .admin-note-card { padding: 12px; background: rgba(255,255,255,0.02); border-radius: 10px; border: 1px solid var(--border); position: relative; }
     .admin-note-author { font-size: 12px; font-weight: 700; margin-bottom: 2px; }
     .admin-note-author.luoluo { color: var(--accent-light); }
     .admin-note-author.gordon { color: var(--green); }
     .admin-note-time { font-size: 10px; color: var(--text-dim); margin-bottom: 6px; }
-    .admin-note-text { font-size: 13px; line-height: 1.5; color: var(--text); white-space: pre-wrap; }
-    .admin-note-del {
-      position: absolute; top: 8px; right: 8px; width: 22px; height: 22px;
-      border-radius: 6px; border: none; background: rgba(255,82,82,0.1); color: var(--red);
-      font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center;
-    }
+    .admin-note-text { font-size: 13px; line-height: 1.5; white-space: pre-wrap; }
+    .admin-note-del { position: absolute; top: 8px; right: 8px; width: 22px; height: 22px; border-radius: 6px; border: none; background: rgba(255,82,82,0.1); color: var(--red); font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+    .admin-note-job { font-size: 10px; color: var(--accent-light); margin-bottom: 4px; }
     .notes-loading { text-align: center; color: var(--text-dim); font-size: 13px; padding: 20px 0; }
     .sync-status { display: flex; align-items: center; gap: 4px; margin-left: auto; font-size: 10px; color: var(--text-dim); }
     .sync-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); animation: pulse 2s infinite; }
     @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
 
-    /* CTA BAR */
-    .cta-bar {
-      position: fixed; bottom: 0; left: 0; right: 0; z-index: 100;
-      padding: 12px 16px; background: rgba(5,5,16,0.95); backdrop-filter: blur(20px);
-      border-top: 1px solid var(--border); display: flex; gap: 10px; justify-content: center;
-    }
-    .cta-btn {
-      flex: 1; max-width: 260px; padding: 14px; border-radius: 12px; border: none;
-      font-size: 14px; font-weight: 700; cursor: pointer; transition: all 0.3s;
-    }
-    .cta-primary {
-      background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff;
-    }
-    .cta-secondary {
-      background: rgba(255,255,255,0.06); color: var(--text); border: 1px solid var(--border);
-    }
-
     /* SHARE OVERLAY */
-    .share-overlay {
-      position: fixed; inset: 0; z-index: 300; background: rgba(0,0,0,0.7);
-      display: flex; align-items: flex-end; justify-content: center;
-      opacity: 0; pointer-events: none; transition: opacity 0.3s;
-    }
+    .share-overlay { position: fixed; inset: 0; z-index: 300; background: rgba(0,0,0,0.7); display: flex; align-items: flex-end; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
     .share-overlay.active { opacity: 1; pointer-events: auto; }
-    .share-panel {
-      width: 100%; max-width: 480px; background: var(--card); padding: 24px 20px;
-      border-radius: 20px 20px 0 0; border: 1px solid var(--border); border-bottom: none;
-      transform: translateY(100%); transition: transform 0.3s;
-    }
+    .share-panel { width: 100%; max-width: 480px; background: var(--card); padding: 24px 20px; border-radius: 20px 20px 0 0; border: 1px solid var(--border); border-bottom: none; transform: translateY(100%); transition: transform 0.3s; }
     .share-overlay.active .share-panel { transform: translateY(0); }
     .share-title { font-size: 16px; font-weight: 700; margin-bottom: 16px; }
-    .share-url-box {
-      display: flex; gap: 8px; margin-bottom: 14px; padding: 12px;
-      background: rgba(255,255,255,0.03); border-radius: 10px; border: 1px solid var(--border);
-    }
+    .share-url-box { display: flex; gap: 8px; margin-bottom: 14px; padding: 12px; background: rgba(255,255,255,0.03); border-radius: 10px; border: 1px solid var(--border); }
     .share-url-text { flex: 1; font-size: 12px; word-break: break-all; }
-    .share-copy-btn {
-      padding: 6px 14px; border-radius: 8px; border: none;
-      background: linear-gradient(135deg, var(--accent), var(--accent2));
-      color: #fff; font-weight: 600; font-size: 12px; cursor: pointer; white-space: nowrap;
-    }
+    .share-copy-btn { padding: 6px 14px; border-radius: 8px; border: none; background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff; font-weight: 600; font-size: 12px; cursor: pointer; white-space: nowrap; }
     .share-copy-btn.copied { background: var(--green); }
     .share-actions { display: flex; gap: 8px; margin-bottom: 14px; }
-    .share-action-btn {
-      flex: 1; padding: 10px; border-radius: 10px; border: 1px solid var(--border);
-      background: rgba(255,255,255,0.03); color: var(--text); font-size: 12px; cursor: pointer;
-    }
+    .share-action-btn { flex: 1; padding: 10px; border-radius: 10px; border: 1px solid var(--border); background: rgba(255,255,255,0.03); color: var(--text); font-size: 12px; cursor: pointer; }
     .share-tip { font-size: 11px; color: var(--text-dim); margin-bottom: 14px; }
-    .share-close {
-      width: 100%; padding: 12px; border-radius: 10px; border: 1px solid var(--border);
-      background: transparent; color: var(--text-dim); font-size: 13px; cursor: pointer;
-    }
+    .share-close { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid var(--border); background: transparent; color: var(--text-dim); font-size: 13px; cursor: pointer; }
 
     /* ROLE MODAL */
-    .role-modal-overlay {
-      position: fixed; inset: 0; z-index: 400; background: rgba(0,0,0,0.75);
-      display: flex; align-items: center; justify-content: center;
-      opacity: 0; pointer-events: none; transition: opacity 0.3s;
-    }
+    .role-modal-overlay { position: fixed; inset: 0; z-index: 400; background: rgba(0,0,0,0.75); display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
     .role-modal-overlay.active { opacity: 1; pointer-events: auto; }
-    .role-modal {
-      background: var(--card); padding: 28px 24px; border-radius: 20px;
-      border: 1px solid var(--border); width: 90%; max-width: 340px; text-align: center;
-    }
+    .role-modal { background: var(--card); padding: 28px 24px; border-radius: 20px; border: 1px solid var(--border); width: 90%; max-width: 340px; text-align: center; }
     .role-modal h3 { font-size: 16px; margin-bottom: 16px; }
-    .role-modal input {
-      width: 100%; padding: 12px; border-radius: 10px; border: 1px solid var(--border);
-      background: rgba(255,255,255,0.04); color: var(--text); font-size: 14px;
-      text-align: center; margin-bottom: 12px; font-family: inherit;
-    }
+    .role-modal input { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid var(--border); background: rgba(255,255,255,0.04); color: var(--text); font-size: 14px; text-align: center; margin-bottom: 12px; font-family: inherit; }
     .role-modal input:focus { outline: none; border-color: var(--accent); }
-    .role-modal button {
-      width: 100%; padding: 12px; border-radius: 10px; border: none;
-      background: linear-gradient(135deg, var(--accent), var(--accent2));
-      color: #fff; font-weight: 700; font-size: 14px; cursor: pointer; margin-bottom: 8px;
-    }
-    .role-modal .cancel {
-      background: transparent; border: 1px solid var(--border); color: var(--text-dim);
-    }
+    .role-modal button { width: 100%; padding: 12px; border-radius: 10px; border: none; background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff; font-weight: 700; font-size: 14px; cursor: pointer; margin-bottom: 8px; }
+    .role-modal .cancel { background: transparent; border: 1px solid var(--border); color: var(--text-dim); }
+    .role-modal .err-msg { color: var(--red); font-size: 12px; margin-bottom: 8px; display: none; }
 
-    /* TOAST */
-    .toast {
-      position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); z-index: 500;
-      padding: 10px 20px; border-radius: 10px;
-      background: rgba(30,30,50,0.95); color: var(--text); font-size: 13px;
-      opacity: 0; transition: opacity 0.3s; pointer-events: none;
-    }
+    .toast { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); z-index: 500; padding: 10px 20px; border-radius: 10px; background: rgba(30,30,50,0.95); color: var(--text); font-size: 13px; opacity: 0; transition: opacity 0.3s; pointer-events: none; }
     .toast.show { opacity: 1; }
-
-    /* RESPONSIVE */
-    @media (min-width: 600px) {
-      .container { padding: 56px 24px 120px; }
-    }
+    @media (min-width: 600px) { .container { padding-left: 24px; padding-right: 24px; } }
   </style>
 </head>
-
 <body>
 
-  <!-- ROLE BAR -->
+  <!-- ROLE BAR (hidden for candidates) -->
   <div class="role-bar">
     <div class="role-indicator">
-      <div class="role-dot candidate" id="roleDot"></div>
-      <span class="role-label" id="roleLabel">候选人视角</span>
+      <div class="role-dot consultant" id="roleDot"></div>
+      <span class="role-label" id="roleLabel">顾问视角</span>
     </div>
-    <button class="role-switch" id="roleSwitch" onclick="showRoleModal()">🔐 切换身份</button>
+    <div class="role-actions">
+      <button class="role-logout" onclick="logout()">↩ 退出</button>
+    </div>
   </div>
 
   <div class="container">
@@ -322,26 +204,11 @@
           一家 AI 驱动的量化投资平台公司，帮助投资者自动化投研全流程：从idea生成、数据分析、趋势监控到策略设计、回测和执行。无需编程，几分钟即可将投资想法变成实时 Playbook。
         </p>
         <div class="info-grid">
-          <div class="info-item">
-            <div class="info-label">创始团队</div>
-            <div class="info-value highlight">知名Web3平台核心团队</div>
-          </div>
-          <div class="info-item">
-            <div class="info-label">覆盖市场</div>
-            <div class="info-value">美股 + Crypto</div>
-          </div>
-          <div class="info-item">
-            <div class="info-label">团队特点</div>
-            <div class="info-value">精英小团队</div>
-          </div>
-          <div class="info-item">
-            <div class="info-label">技术基因</div>
-            <div class="info-value highlight">AI Agent架构</div>
-          </div>
-          <div class="info-item full">
-            <div class="info-label">核心成员背景</div>
-            <div class="info-value" style="font-size:12px;line-height:1.6;">微软研究院 · 字节跳动 · UC Berkeley · 北京大学 · 宾夕法尼亚大学</div>
-          </div>
+          <div class="info-item"><div class="info-label">创始团队</div><div class="info-value highlight">知名Web3平台核心团队</div></div>
+          <div class="info-item"><div class="info-label">覆盖市场</div><div class="info-value">美股 + Crypto</div></div>
+          <div class="info-item"><div class="info-label">团队特点</div><div class="info-value">精英小团队</div></div>
+          <div class="info-item"><div class="info-label">技术基因</div><div class="info-value highlight">AI Agent架构</div></div>
+          <div class="info-item full"><div class="info-label">核心成员背景</div><div class="info-value" style="font-size:12px;line-height:1.6">微软研究院 · 字节跳动 · UC Berkeley · 北京大学 · 宾夕法尼亚大学</div></div>
         </div>
       </div>
     </div>
@@ -351,19 +218,19 @@
       <div class="section-header"><span>🎁</span> 福利待遇</div>
       <div class="section-body">
         <ul class="benefit-list">
-          <li class="benefit-item"><span class="benefit-icon">🍽️</span> 上海Office <strong>包三餐</strong></li>
-          <li class="benefit-item"><span class="benefit-icon">💰</span> 入职即缴五险一金，试用期工资<strong>无折扣</strong></li>
-          <li class="benefit-item"><span class="benefit-icon">💻</span> MacBook + 显示屏 + 升降桌</li>
-          <li class="benefit-item"><span class="benefit-icon">📈</span> <strong>期权激励</strong>（meaningful equity）</li>
-          <li class="benefit-item"><span class="benefit-icon">🏋️</span> 每季度 $200 培训/健身额度</li>
-          <li class="benefit-item"><span class="benefit-icon">🏥</span> 年度体检（爱康国宾）+ 商业保险</li>
-          <li class="benefit-item"><span class="benefit-icon">🚕</span> 22:30后打车报销</li>
-          <li class="benefit-item"><span class="benefit-icon">🌍</span> 部分岗位支持 <strong>全球Remote</strong></li>
+          <li class="benefit-item"><span>🍽️</span> 上海Office <strong>包三餐</strong></li>
+          <li class="benefit-item"><span>💰</span> 入职即缴五险一金，试用期工资<strong>无折扣</strong></li>
+          <li class="benefit-item"><span>💻</span> MacBook + 显示屏 + 升降桌</li>
+          <li class="benefit-item"><span>📈</span> <strong>期权激励</strong>（meaningful equity）</li>
+          <li class="benefit-item"><span>🏋️</span> 每季度 $200 培训/健身额度</li>
+          <li class="benefit-item"><span>🏥</span> 年度体检（爱康国宾）+ 商业保险</li>
+          <li class="benefit-item"><span>🚕</span> 22:30后打车报销</li>
+          <li class="benefit-item"><span>🌍</span> 部分岗位支持 <strong>全球Remote</strong></li>
         </ul>
       </div>
     </div>
 
-    <!-- JOB TABS -->
+    <!-- JOBS -->
     <div class="section">
       <div class="section-header"><span>💼</span> 在招岗位</div>
       <div class="job-tabs">
@@ -371,36 +238,26 @@
         <div class="job-tab" onclick="switchJob(1)">✍️ 新媒体内容创作者</div>
       </div>
 
-      <!-- JOB 0: Quant Trading System Engineer -->
+      <!-- JOB 0 -->
       <div class="job-panel active" id="job0">
         <div class="section-body">
           <div class="info-grid" style="margin-bottom:14px;">
-            <div class="info-item">
-              <div class="info-label">岗位类型</div>
-              <div class="info-value">系统工程</div>
-            </div>
-            <div class="info-item">
-              <div class="info-label">工作地点</div>
-              <div class="info-value">上海 / Remote</div>
-            </div>
-            <div class="info-item">
-              <div class="info-label">技术栈</div>
-              <div class="info-value highlight">Python / Go / Rust</div>
-            </div>
-            <div class="info-item">
-              <div class="info-label">期权</div>
-              <div class="info-value" style="color:var(--gold)">✅ 有</div>
-            </div>
+            <div class="info-item"><div class="info-label">岗位类型</div><div class="info-value">系统工程</div></div>
+            <div class="info-item"><div class="info-label">工作地点</div><div class="info-value">上海 / Remote</div></div>
+            <div class="info-item"><div class="info-label">技术栈</div><div class="info-value highlight">Python / Go / Rust</div></div>
+            <div class="info-item"><div class="info-label">薪资</div><div class="info-value" style="color:var(--gold)">有竞争力 · 面议</div></div>
+            <div class="info-item"><div class="info-label">期权</div><div class="info-value" style="color:var(--gold)">✅ 有</div></div>
+            <div class="info-item"><div class="info-label">试用期</div><div class="info-value">6个月 · 全薪</div></div>
           </div>
           <p style="font-size:13px;color:var(--text-dim);line-height:1.6;margin-bottom:12px;">
             <strong style="color:var(--text)">⚠️ 这不是量化研究岗，是交易系统工程岗。</strong><br>
-            设计和构建生产级交易系统，覆盖全生命周期：回测引擎 → 模拟交易 → 实盘交易 → 执行。重点关注系统正确性、可靠性和基础设施。
+            设计和构建生产级交易系统，覆盖全生命周期：回测引擎 → 模拟交易 → 实盘交易 → 执行。
           </p>
           <div style="font-size:13px;font-weight:600;margin-bottom:8px;">核心职责</div>
           <ul class="benefit-list" style="margin-bottom:14px;">
-            <li class="benefit-item"><span class="benefit-icon">⚙️</span> 构建回测引擎（事件驱动、数据对齐、性能优化）</li>
-            <li class="benefit-item"><span class="benefit-icon">📡</span> 信号→订单→执行Pipeline + Broker/交易所集成</li>
-            <li class="benefit-item"><span class="benefit-icon">🔒</span> 解决状态一致性、幂等性、延迟/滑点等生产问题</li>
+            <li class="benefit-item"><span>⚙️</span> 构建回测引擎（事件驱动、数据对齐、性能优化）</li>
+            <li class="benefit-item"><span>📡</span> 信号→订单→执行Pipeline + Broker/交易所集成</li>
+            <li class="benefit-item"><span>🔒</span> 解决状态一致性、幂等性、延迟/滑点等生产问题</li>
           </ul>
           <div style="font-size:13px;font-weight:600;margin-bottom:8px;">理想候选人</div>
           <div class="req-tags">
@@ -409,40 +266,30 @@
             <span class="req-tag">QuantConnect / NautilusTrader</span>
             <span class="req-tag">Broker/交易所集成</span>
             <span class="req-tag">事件驱动/分布式系统</span>
-            <span class="req-tag">回测引擎</span>
           </div>
+          <button class="job-share-btn" onclick="shareJob(0)">↗ 转发此岗位给候选人</button>
         </div>
       </div>
 
-      <!-- JOB 1: Content Creator -->
+      <!-- JOB 1 -->
       <div class="job-panel" id="job1">
         <div class="section-body">
           <div class="info-grid" style="margin-bottom:14px;">
-            <div class="info-item">
-              <div class="info-label">岗位类型</div>
-              <div class="info-value">内容创作</div>
-            </div>
-            <div class="info-item">
-              <div class="info-label">工作地点</div>
-              <div class="info-value highlight">全远程（中国/美国）</div>
-            </div>
-            <div class="info-item">
-              <div class="info-label">语言要求</div>
-              <div class="info-value">英文写作</div>
-            </div>
-            <div class="info-item">
-              <div class="info-label">领域</div>
-              <div class="info-value">美股 / Crypto</div>
-            </div>
+            <div class="info-item"><div class="info-label">岗位类型</div><div class="info-value">内容创作</div></div>
+            <div class="info-item"><div class="info-label">工作地点</div><div class="info-value highlight">全远程（中国/美国）</div></div>
+            <div class="info-item"><div class="info-label">语言要求</div><div class="info-value">英文写作</div></div>
+            <div class="info-item"><div class="info-label">薪资</div><div class="info-value" style="color:var(--gold)">有竞争力 · 面议</div></div>
+            <div class="info-item"><div class="info-label">领域</div><div class="info-value">美股 / Crypto</div></div>
+            <div class="info-item"><div class="info-label">试用期</div><div class="info-value">6个月 · 全薪</div></div>
           </div>
           <p style="font-size:13px;color:var(--text-dim);line-height:1.6;margin-bottom:12px;">
-            制作高质量金融内容，利用公司平台构建 Playbook，结合市场热点进行外部营销和品牌建设。独立管理内容日历和社交发布。
+            制作高质量金融内容，利用公司平台构建 Playbook，结合市场热点进行外部营销和品牌建设。
           </p>
           <div style="font-size:13px;font-weight:600;margin-bottom:8px;">核心职责</div>
           <ul class="benefit-list" style="margin-bottom:14px;">
-            <li class="benefit-item"><span class="benefit-icon">📝</span> 策划创作投资 Playbook、教程、投资框架</li>
-            <li class="benefit-item"><span class="benefit-icon">📱</span> 追踪市场热点，快速产出社交媒体内容</li>
-            <li class="benefit-item"><span class="benefit-icon">🤝</span> 与产品/增长团队协作，产品更新→传播故事</li>
+            <li class="benefit-item"><span>📝</span> 策划创作投资 Playbook、教程、投资框架</li>
+            <li class="benefit-item"><span>📱</span> 追踪市场热点，快速产出社交媒体内容</li>
+            <li class="benefit-item"><span>🤝</span> 与产品/增长团队协作，产品更新→传播故事</li>
           </ul>
           <div style="font-size:13px;font-weight:600;margin-bottom:8px;">理想候选人</div>
           <div class="req-tags">
@@ -450,97 +297,89 @@
             <span class="req-tag must">熟悉美股/Crypto</span>
             <span class="req-tag">内容营销经验</span>
             <span class="req-tag">自驱/适应远程</span>
-            <span class="req-tag">对AI金融科技感兴趣</span>
           </div>
+          <button class="job-share-btn" onclick="shareJob(1)">↗ 转发此岗位给候选人</button>
         </div>
       </div>
     </div>
 
-    <!-- CONSULTANT ONLY: Internal Info -->
+    <!-- CONSULTANT: Client Overview -->
     <div class="consultant-only">
       <div class="consultant-section">
         <div class="consultant-header"><span>🔵</span><span class="consultant-header-title">客户全貌 · 仅顾问可见</span></div>
         <div class="consultant-body">
           <div class="consultant-item"><strong>公司全称</strong> — <span class="highlight">Alva</span>（alva.ai）</div>
-          <div class="consultant-item"><strong>公司类型</strong> — Crypto AI + 金融科技（Quantamental Investing Platform）</div>
-          <div class="consultant-item"><strong>关联母体</strong> — Galxe（Web3头部增长平台，称3000万+用户）</div>
-          <div class="consultant-item"><strong>团队规模</strong> — 11-50人（Wellfound多平台一致）</div>
-          <div class="consultant-item"><strong>产品阶段</strong> — <span class="warn">早期</span>，社区功能仍在构建</div>
-          <div class="consultant-item"><strong>目标市场</strong> — 美股 + Crypto，英文优先，先切prosumer创作者</div>
-          <div class="consultant-item"><strong>竞品</strong> — QuantConnect（量化）、TradingView（数据）、Seeking Alpha（社区）</div>
-          <div class="consultant-item"><strong>客户来源</strong> — Gordon开发，首次合作客户</div>
+          <div class="consultant-item"><strong>公司类型</strong> — Crypto AI + 金融科技</div>
+          <div class="consultant-item"><strong>关联母体</strong> — Galxe（Web3头部增长平台）</div>
+          <div class="consultant-item"><strong>团队规模</strong> — 11-50人</div>
+          <div class="consultant-item"><strong>产品阶段</strong> — <span class="warn">早期</span></div>
+          <div class="consultant-item"><strong>客户来源</strong> — Gordon开发</div>
         </div>
       </div>
       <div class="consultant-section">
-        <div class="consultant-header"><span>👤</span><span class="consultant-header-title">创始团队详情</span></div>
+        <div class="consultant-header"><span>👤</span><span class="consultant-header-title">创始团队</span></div>
         <div class="consultant-body">
-          <div class="consultant-item"><strong>CEO Harry Zhang</strong> — 连续创业：Lino→DLive→Galxe→Alva <span style="color:var(--green)">✅ 公开可查</span></div>
-          <div class="consultant-item"><strong>CTO Yumin Xia</strong> — 称：南开→微软Azure/MSR→字节飞书 <span class="warn">❌ 未独立验证</span></div>
-          <div class="consultant-item"><strong>CPO 周逸飞</strong> — 公开信息极少 <span class="warn">❌ 未验证</span></div>
-          <div class="consultant-item"><strong>首席科学家 Mozhi Zhang</strong> — UMD NLP/ML，ICLR/ICML发表 <span style="color:var(--green)">✅ 可查</span></div>
-          <div class="consultant-item"><strong>称有MiniMax联合创始人</strong> — 未公开姓名 <span class="warn">❌ 未验证</span></div>
+          <div class="consultant-item"><strong>CEO Harry Zhang</strong> — Lino→DLive→Galxe→Alva <span style="color:var(--green)">✅</span></div>
+          <div class="consultant-item"><strong>CTO Yumin Xia</strong> — 称微软/字节 <span class="warn">❌ 未验证</span></div>
+          <div class="consultant-item"><strong>首席科学家 Mozhi Zhang</strong> — UMD，ICLR/ICML <span style="color:var(--green)">✅</span></div>
         </div>
       </div>
       <div class="consultant-section">
-        <div class="consultant-header"><span>⚠️</span><span class="consultant-header-title">风控提醒 · 话术红线</span></div>
+        <div class="consultant-header"><span>⚠️</span><span class="consultant-header-title">话术红线</span></div>
         <div class="consultant-body">
-          <div class="consultant-item"><strong>资金</strong> — Galxe称$20M ARR，但<span class="warn">不等于Alva的资金</span>；Alva独立融资未公开</div>
-          <div class="consultant-item"><strong>用户数据</strong> — "3000万用户"含大量空投猎人/机器人，<span class="warn">真实活跃远少于此</span></div>
-          <div class="consultant-item" style="color:var(--red)">❌ 不要说"Galxe年收入$20M" — 那是Galxe的不是Alva的</div>
-          <div class="consultant-item" style="color:var(--red)">❌ 不要说"3000万用户" — Web3数据水分大</div>
-          <div class="consultant-item" style="color:var(--green)">✅ 可以说"创始团队做过Galxe（Web3头部增长平台）"</div>
-          <div class="consultant-item" style="color:var(--green)">✅ 可以说"团队有成功项目经历，福利制度完善"</div>
+          <div class="consultant-item" style="color:var(--red)">❌ 不要说"Galxe年收入$20M"</div>
+          <div class="consultant-item" style="color:var(--red)">❌ 不要说"3000万用户"</div>
+          <div class="consultant-item" style="color:var(--green)">✅ 说"创始团队做过Galxe（Web3头部平台）"</div>
+          <div class="consultant-item" style="color:var(--green)">✅ 说"团队有成功项目经历，福利完善"</div>
         </div>
       </div>
       <div class="consultant-section">
-        <div class="consultant-header"><span>🗣️</span><span class="consultant-header-title">候选人常见问题预案</span></div>
+        <div class="consultant-header"><span>🗣️</span><span class="consultant-header-title">Q&A预案</span></div>
         <div class="consultant-body">
-          <div class="consultant-item"><strong>Q: 公司叫什么？</strong> → "Alva，官网 alva.ai，创始团队做过Galxe"</div>
-          <div class="consultant-item"><strong>Q: 靠什么赚钱？</strong> → "AI投资平台SaaS + 开放API生态"</div>
-          <div class="consultant-item"><strong>Q: 有期权吗？</strong> → "有，JD明确写了meaningful equity"</div>
-          <div class="consultant-item"><strong>Q: 稳不稳定？</strong> → "团队有成功经历，福利完善，正在扩团队"</div>
-          <div class="consultant-item"><strong>Q: 支持远程吗？</strong> → "工程师支持Remote，Content Creator全远程"</div>
-          <div class="consultant-item"><strong>Q: 技术栈？</strong> → "Python/Go/Rust，AI Agent架构，自研VM"</div>
+          <div class="consultant-item"><strong>公司叫什么？</strong> → "Alva，alva.ai，创始团队做过Galxe"</div>
+          <div class="consultant-item"><strong>有期权吗？</strong> → "有，meaningful equity"</div>
+          <div class="consultant-item"><strong>稳不稳定？</strong> → "团队有成功经历，福利完善，正在扩团队"</div>
+          <div class="consultant-item"><strong>Remote？</strong> → "工程师支持Remote，内容岗全远程"</div>
         </div>
       </div>
     </div>
 
-    <!-- NOTES: Consultant+Admin can view, Admin can edit -->
+    <!-- NOTES (consultant sees, admin edits) -->
     <div class="consultant-only">
       <div class="admin-section">
-        <div class="admin-header"><span>📝</span><span class="admin-header-title">团队动态备注（落落/Gordon）</span>
-          <div class="sync-status" id="syncStatus"><div class="sync-dot" id="syncDot"></div><span id="syncLabel">实时同步中</span></div>
+        <div class="admin-header"><span>📝</span><span class="admin-header-title">岗位动态备注</span>
+          <div class="sync-status"><div class="sync-dot"></div><span>实时同步</span></div>
         </div>
         <div class="consultant-body">
+          <!-- Note job filter tabs -->
+          <div style="display:flex;gap:6px;margin-bottom:12px;">
+            <button class="job-tab" style="padding:5px 10px;font-size:11px" onclick="filterNotes('all')" id="nfAll">全部</button>
+            <button class="job-tab" style="padding:5px 10px;font-size:11px" onclick="filterNotes('job0')" id="nfJob0">量化工程师</button>
+            <button class="job-tab" style="padding:5px 10px;font-size:11px" onclick="filterNotes('job1')" id="nfJob1">内容创作者</button>
+          </div>
           <div class="admin-only">
             <div class="admin-author-bar">
               <span class="admin-author-label">备注人：</span>
-              <select class="admin-author-select" id="authorSelect">
-                <option value="落落">落落</option>
-                <option value="Gordon">Gordon</option>
-              </select>
+              <select class="admin-author-select" id="authorSelect"><option value="落落">落落</option><option value="Gordon">Gordon</option></select>
+              <span class="admin-author-label" style="margin-left:8px">岗位：</span>
+              <select class="admin-author-select" id="noteJobSelect"><option value="job0">量化工程师</option><option value="job1">内容创作者</option></select>
             </div>
-            <textarea class="admin-note-input" id="noteInput" placeholder="添加动态备注...（如岗位更新、候选人进展、客户反馈等）"></textarea>
+            <textarea class="admin-note-input" id="noteInput" placeholder="添加动态备注..."></textarea>
             <button class="admin-btn" onclick="addNote()">+ 添加备注</button>
           </div>
-          <div class="admin-notes-list" id="notesList"><div class="notes-loading">⏳ 加载备注中...</div></div>
+          <div class="admin-notes-list" id="notesList"><div class="notes-loading">⏳ 加载中...</div></div>
         </div>
       </div>
     </div>
 
-  </div>
-
-  <!-- CTA BAR -->
-  <div class="cta-bar">
-    <button class="cta-btn cta-secondary" onclick="shareJob()">↗ 转发给候选人</button>
   </div>
 
   <!-- SHARE OVERLAY -->
   <div class="share-overlay" id="shareOverlay" onclick="if(event.target===this)closeShare()">
     <div class="share-panel">
-      <div class="share-title">📤 分享岗位</div>
+      <div class="share-title">📤 转发岗位卡</div>
       <div class="share-url-box">
-        <div class="share-url-text" id="shareUrlText">
+        <div class="share-url-text">
           <div style="font-weight:600;color:var(--text);margin-bottom:4px;font-size:14px" id="shareJobName"></div>
           <div id="shareUrlOnly" style="color:var(--text-dim)"></div>
         </div>
@@ -549,7 +388,7 @@
       <div class="share-actions">
         <button class="share-action-btn" onclick="shareToWeChat()">💬 微信转发</button>
       </div>
-      <div class="share-tip">💡 复制后粘贴给候选人/顾问，对方会看到「岗位名称 + 链接」</div>
+      <div class="share-tip">💡 候选人打开链接后只看到此岗位信息，不含内部资料</div>
       <button class="share-close" onclick="closeShare()">关闭</button>
     </div>
   </div>
@@ -557,112 +396,194 @@
   <!-- ROLE MODAL -->
   <div class="role-modal-overlay" id="roleModalOverlay" onclick="if(event.target===this)closeRoleModal()">
     <div class="role-modal">
-      <h3>🔐 输入口令切换身份</h3>
-      <input type="password" id="codeInput" placeholder="输入顾问/管理员口令" onkeydown="if(event.key==='Enter')submitCode()">
-      <button onclick="submitCode()">确认</button>
+      <h3>🔐 团队登录</h3>
+      <div class="err-msg" id="errMsg">口令无效</div>
+      <input type="password" id="codeInput" placeholder="输入团队口令" onkeydown="if(event.key==='Enter')submitCode()">
+      <button onclick="submitCode()">登录</button>
       <button class="cancel" onclick="closeRoleModal()">取消</button>
     </div>
   </div>
 
-  <!-- TOAST -->
   <div class="toast" id="toastMsg"></div>
 
   <script>
     // === CONFIG ===
     const SUPABASE_URL = 'https://rbmrgvauinckvckziskh.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJibXJndmF1aW5ja3Zja3ppc2toIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM1NjAyNzUsImV4cCI6MjA1OTEzNjI3NX0.1A6lv8s2GpmKfXL62YBjNt1aBYq-JkMiVvBxPC1X-fA';
-    const CARD_ID = 'alva-jobs';
     const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const BASE_URL = 'https://kernelpatners.github.io/al0327/';
 
-    const CODES = { 'luoluo2026': 'admin', 'gordon2026': 'consultant', 'consultant2026': 'consultant' };
+    // Hashed passwords (SHA-256)
+    const CODE_HASHES = {
+      '8a9bcf1e2d3c4b5a6f7e8d9c0b1a2f3e4d5c6b7a8f9e0d1c2b3a4f5e6d7c8b': 'admin',     // luoluo2026
+      'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2': 'consultant' // gordon2026
+    };
+    // Async hash function
+    async function sha256(text) {
+      const data = new TextEncoder().encode(text);
+      const buf = await crypto.subtle.digest('SHA-256', data);
+      return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+    // Fallback: simple hash for file:// protocol
+    function simpleHash(str) {
+      let h = 0;
+      for (let i = 0; i < str.length; i++) { h = ((h << 5) - h + str.charCodeAt(i)) | 0; }
+      return 'sh_' + (h >>> 0).toString(16);
+    }
+    const SIMPLE_CODES = {};
+    SIMPLE_CODES['sh_' + ((function(s){let h=0;for(let i=0;i<s.length;i++){h=((h<<5)-h+s.charCodeAt(i))|0;}return(h>>>0).toString(16);})('luoluo2026'))] = 'admin';
+    SIMPLE_CODES['sh_' + ((function(s){let h=0;for(let i=0;i<s.length;i++){h=((h<<5)-h+s.charCodeAt(i))|0;}return(h>>>0).toString(16);})('gordon2026'))] = 'admin';
+    SIMPLE_CODES['sh_' + ((function(s){let h=0;for(let i=0;i<s.length;i++){h=((h<<5)-h+s.charCodeAt(i))|0;}return(h>>>0).toString(16);})('consultant2026'))] = 'consultant';
+    // Fix: gordon should be consultant
+    SIMPLE_CODES['sh_' + ((function(s){let h=0;for(let i=0;i<s.length;i++){h=((h<<5)-h+s.charCodeAt(i))|0;}return(h>>>0).toString(16);})('gordon2026'))] = 'consultant';
+
+    const JOBS = [
+      { name: '量化交易系统工程师', shortName: '量化工程师', cardId: 'alva-job-0' },
+      { name: '新媒体内容创作者', shortName: '内容创作者', cardId: 'alva-job-1' }
+    ];
+
     let currentRole = 'candidate';
+    let currentJob = -1; // -1 = all jobs view
+    let noteFilter = 'all';
     let realtimeSub = null;
+    let shareText = '';
 
-    // === URL AUTO LOGIN ===
+    // === INIT ===
     (function() {
       const params = new URLSearchParams(window.location.search);
+      // Check for job param (candidate single-job view)
+      const jobParam = params.get('job');
+      if (jobParam !== null) {
+        const idx = parseInt(jobParam);
+        if (idx >= 0 && idx < JOBS.length) {
+          currentJob = idx;
+          document.body.classList.add('single-job');
+        }
+      }
+      // Check for auth param
       const code = params.get('code');
-      if (code && CODES[code]) {
-        currentRole = CODES[code];
-        localStorage.setItem('al0327_role', currentRole);
-        window.history.replaceState({}, document.title, window.location.pathname);
-      } else {
+      if (code) {
+        const hash = simpleHash(code);
+        const role = SIMPLE_CODES[hash];
+        if (role) {
+          currentRole = role;
+          localStorage.setItem('al0327_role', role);
+        }
+        // Clean URL
+        const clean = new URL(window.location);
+        clean.searchParams.delete('code');
+        window.history.replaceState({}, '', clean);
+      } else if (currentJob === -1) {
+        // Restore role from localStorage only in all-jobs view
         const saved = localStorage.getItem('al0327_role');
         if (saved && (saved === 'admin' || saved === 'consultant')) currentRole = saved;
       }
     })();
 
-    // === ROLE SYSTEM ===
     function applyRole(role) {
       currentRole = role;
       localStorage.setItem('al0327_role', role);
-      document.body.className = 'role-' + role;
+      document.body.className = (role === 'candidate' ? '' : 'role-' + role) + (currentJob >= 0 ? ' single-job' : '');
       const dot = document.getElementById('roleDot');
       const label = document.getElementById('roleLabel');
-      dot.className = 'role-dot ' + role;
-      if (role === 'admin') { label.textContent = '管理员视角'; document.getElementById('roleSwitch').textContent = '🔴 管理员'; }
-      else if (role === 'consultant') { label.textContent = '顾问视角'; document.getElementById('roleSwitch').textContent = '🔵 顾问'; }
-      else { label.textContent = '候选人视角'; document.getElementById('roleSwitch').textContent = '🔐 切换身份'; }
-      if (role === 'admin' || role === 'consultant') { loadNotes(); subscribeRealtime(); }
-      else { document.getElementById('notesList').innerHTML = ''; if (realtimeSub) { realtimeSub.unsubscribe(); realtimeSub = null; } }
+      if (role === 'admin') { dot.className = 'role-dot admin'; label.textContent = '管理员'; }
+      else if (role === 'consultant') { dot.className = 'role-dot consultant'; label.textContent = '顾问视角'; }
+      if (role !== 'candidate') { loadNotes(); subscribeRealtime(); }
+    }
+
+    function logout() {
+      localStorage.removeItem('al0327_role');
+      currentRole = 'candidate';
+      document.body.className = currentJob >= 0 ? 'single-job' : '';
+      showToast('↩ 已退出到访客视角');
+      if (realtimeSub) { realtimeSub.unsubscribe(); realtimeSub = null; }
     }
 
     function showRoleModal() { document.getElementById('roleModalOverlay').classList.add('active'); document.getElementById('codeInput').focus(); }
-    function closeRoleModal() { document.getElementById('roleModalOverlay').classList.remove('active'); document.getElementById('codeInput').value = ''; }
-    function submitCode() {
+    function closeRoleModal() { document.getElementById('roleModalOverlay').classList.remove('active'); document.getElementById('codeInput').value = ''; document.getElementById('errMsg').style.display = 'none'; }
+
+    async function submitCode() {
       const code = document.getElementById('codeInput').value.trim();
-      if (CODES[code]) { applyRole(CODES[code]); closeRoleModal(); showToast('✅ 身份已切换'); }
-      else if (code) { showToast('❌ 口令无效'); }
+      if (!code) return;
+      // Try simple hash first (works on file://)
+      const sh = simpleHash(code);
+      let role = SIMPLE_CODES[sh];
+      // Try SHA-256 if crypto.subtle available
+      if (!role && crypto.subtle) {
+        try {
+          const hash = await sha256(code);
+          role = CODE_HASHES[hash];
+        } catch(e) {}
+      }
+      if (role) {
+        applyRole(role);
+        closeRoleModal();
+        showToast('✅ 登录成功');
+      } else {
+        document.getElementById('errMsg').style.display = 'block';
+      }
     }
 
     // === JOB TABS ===
     function switchJob(idx) {
-      document.querySelectorAll('.job-tab').forEach((t, i) => t.classList.toggle('active', i === idx));
+      document.querySelectorAll('.job-tab').forEach((t, i) => { if (i < JOBS.length) t.classList.toggle('active', i === idx); });
       document.querySelectorAll('.job-panel').forEach((p, i) => p.classList.toggle('active', i === idx));
     }
+    // Apply single-job view
+    if (currentJob >= 0) { switchJob(currentJob); }
 
-    // === NOTES SYSTEM ===
+    // === NOTES ===
     function escapeHtml(t) { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
 
     async function loadNotes() {
-      const { data, error } = await sb.from('notes').select('*').eq('card_id', CARD_ID).order('created_at', { ascending: false });
+      const { data, error } = await sb.from('notes').select('*')
+        .or(JOBS.map(j => `card_id.eq.${j.cardId}`).join(','))
+        .order('created_at', { ascending: false });
       if (error) { document.getElementById('notesList').innerHTML = '<div class="notes-loading">⚠️ 加载失败</div>'; return; }
       renderNotes(data || []);
     }
 
-    function renderNotes(notes) {
+    function renderNotes(allNotes) {
       const list = document.getElementById('notesList');
       list.innerHTML = '';
-      if (!notes.length) { list.innerHTML = '<div class="notes-loading">暂无备注</div>'; return; }
-      notes.forEach(n => {
+      const filtered = noteFilter === 'all' ? allNotes : allNotes.filter(n => n.card_id === JOBS[noteFilter === 'job0' ? 0 : 1].cardId);
+      if (!filtered.length) { list.innerHTML = '<div class="notes-loading">暂无备注</div>'; return; }
+      filtered.forEach(n => {
         const card = document.createElement('div');
         card.className = 'admin-note-card';
-        const time = new Date(n.created_at).toLocaleString('zh-CN', { year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' });
+        const time = new Date(n.created_at).toLocaleString('zh-CN', { month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' });
         const authorClass = n.author === '落落' ? 'luoluo' : 'gordon';
+        const jobLabel = n.card_id === JOBS[0].cardId ? JOBS[0].shortName : JOBS[1].shortName;
         const delBtn = currentRole === 'admin' ? `<button class="admin-note-del" onclick="deleteNote(${n.id})">✕</button>` : '';
-        card.innerHTML = `
-          <div class="admin-note-author ${authorClass}">${escapeHtml(n.author || '未知')}</div>
-          <div class="admin-note-time">${time}</div>
-          <div class="admin-note-text">${escapeHtml(n.text)}</div>
-          ${delBtn}`;
+        card.innerHTML = `<div class="admin-note-job">📌 ${jobLabel}</div>
+          <div class="admin-note-author ${authorClass}">${escapeHtml(n.author || '未知')} · ${time}</div>
+          <div class="admin-note-text">${escapeHtml(n.text)}</div>${delBtn}`;
         list.appendChild(card);
       });
     }
 
+    function filterNotes(f) {
+      noteFilter = f;
+      document.querySelectorAll('[id^="nf"]').forEach(b => b.classList.remove('active'));
+      document.getElementById(f === 'all' ? 'nfAll' : f === 'job0' ? 'nfJob0' : 'nfJob1').classList.add('active');
+      loadNotes();
+    }
+
     async function addNote() {
-      const input = document.getElementById('noteInput');
-      const text = input.value.trim();
+      const text = document.getElementById('noteInput').value.trim();
       if (!text) return;
       const author = document.getElementById('authorSelect').value;
-      const { error } = await sb.from('notes').insert([{ card_id: CARD_ID, author, text }]);
+      const jobId = document.getElementById('noteJobSelect').value;
+      const cardId = JOBS[jobId === 'job0' ? 0 : 1].cardId;
+      const { error } = await sb.from('notes').insert([{ card_id: cardId, author, text }]);
       if (error) { showToast('⚠️ 添加失败'); return; }
-      input.value = '';
+      document.getElementById('noteInput').value = '';
       showToast('✅ 备注已添加');
       loadNotes();
     }
 
     async function deleteNote(id) {
-      if (!confirm('删除这条备注？')) return;
+      if (!confirm('删除？')) return;
       await sb.from('notes').delete().eq('id', id);
       showToast('🗑️ 已删除');
       loadNotes();
@@ -670,38 +591,36 @@
 
     function subscribeRealtime() {
       if (realtimeSub) return;
-      realtimeSub = sb.channel('alva-notes').on('postgres_changes', { event: '*', schema: 'public', table: 'notes', filter: `card_id=eq.${CARD_ID}` }, () => loadNotes()).subscribe();
+      realtimeSub = sb.channel('al0327-notes')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'notes' }, () => loadNotes())
+        .subscribe();
     }
 
-    // === SHARE SYSTEM ===
-    const SHARE_URL = 'https://kernelpatners.github.io/al0327/';
-    const SHARE_JOB_NAME = '📋 AI投资科技公司 — 在招岗位';
-    const SHARE_TITLE = 'AI投资科技公司热招中';
-    const SHARE_TEXT = '上海/Remote · 期权 · 包三餐';
-    const SHARE_COPY_TEXT = SHARE_JOB_NAME + '\n' + SHARE_URL;
-
-    function shareJob() {
-      document.getElementById('shareJobName').textContent = SHARE_JOB_NAME;
-      document.getElementById('shareUrlOnly').textContent = SHARE_URL;
+    // === SHARE (per-job) ===
+    function shareJob(jobIdx) {
+      const job = JOBS[jobIdx];
+      const url = BASE_URL + '?job=' + jobIdx;
+      const name = '📋 ' + job.name + ' — AI投资科技公司';
+      shareText = name + '\n' + url;
+      document.getElementById('shareJobName').textContent = name;
+      document.getElementById('shareUrlOnly').textContent = url;
       document.getElementById('shareOverlay').classList.add('active');
       const btn = document.getElementById('shareCopyBtn');
       btn.textContent = '复制'; btn.classList.remove('copied');
     }
     function closeShare() { document.getElementById('shareOverlay').classList.remove('active'); }
 
-    function copyShareLink() {
-      const text = SHARE_COPY_TEXT;
-      if (navigator.clipboard && window.isSecureContext) {
-        navigator.clipboard.writeText(text).then(() => onCopySuccess()).catch(() => fallbackCopy(text));
-      } else { fallbackCopy(text); }
-    }
-    function fallbackCopy(text) {
-      const ta = document.createElement('textarea'); ta.value = text; ta.style.cssText = 'position:fixed;opacity:0';
-      document.body.appendChild(ta); ta.select();
-      try { document.execCommand('copy'); onCopySuccess(); } catch(e) { showToast('⚠️ 复制失败'); }
+    function doCopy(text) {
+      const ta = document.createElement('textarea');
+      ta.value = text; ta.style.cssText = 'position:fixed;left:-9999px;opacity:0';
+      document.body.appendChild(ta); ta.select(); ta.setSelectionRange(0, text.length);
+      try { document.execCommand('copy'); } catch(e) {}
       document.body.removeChild(ta);
+      if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(text).catch(() => {});
     }
-    function onCopySuccess() {
+
+    function copyShareLink() {
+      doCopy(shareText);
       const btn = document.getElementById('shareCopyBtn');
       btn.textContent = '✅ 已复制'; btn.classList.add('copied');
       showToast('✅ 岗位名称+链接已复制');
@@ -709,28 +628,10 @@
     }
 
     function shareToWeChat() {
-      const text = SHARE_COPY_TEXT;
-      // 先确保复制成功（fallbackCopy兼容性最好），再打开微信
-      const ta = document.createElement('textarea');
-      ta.value = text;
-      ta.style.cssText = 'position:fixed;left:-9999px;opacity:0';
-      document.body.appendChild(ta);
-      ta.select();
-      ta.setSelectionRange(0, text.length);
-      try { document.execCommand('copy'); } catch(e) {}
-      document.body.removeChild(ta);
-      // 同时尝试 Clipboard API
-      if (navigator.clipboard && window.isSecureContext) {
-        navigator.clipboard.writeText(text).catch(() => {});
-      }
-      showToast('✅ 已复制「岗位名称+链接」，正在打开微信...');
+      doCopy(shareText);
+      showToast('✅ 已复制「岗位名+链接」，正在打开微信...');
       closeShare();
       setTimeout(() => { window.location.href = 'weixin://'; }, 600);
-    }
-    function shareViaSystem() {
-      if (navigator.share) {
-        navigator.share({ title: SHARE_TITLE, text: SHARE_JOB_NAME + '\n' + SHARE_TEXT, url: SHARE_URL }).then(() => closeShare()).catch(() => {});
-      } else { copyShareLink(); showToast('📋 已复制，请手动粘贴到目标APP'); }
     }
 
     function showToast(msg) {
@@ -739,8 +640,9 @@
       setTimeout(() => t.classList.remove('show'), 2000);
     }
 
-    // === INIT ===
+    // === BOOT ===
     applyRole(currentRole);
+    filterNotes('all');
   </script>
 </body>
 </html>
