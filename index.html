@@ -630,11 +630,18 @@
       setTimeout(() => { btn.textContent = '复制'; btn.classList.remove('copied'); }, 3000);
     }
 
+    function isInWeChat() { return /MicroMessenger/i.test(navigator.userAgent); }
+
     function shareToWeChat() {
       doCopy(shareText);
-      showToast('✅ 已复制「岗位名+链接」，正在打开微信...');
       closeShare();
-      setTimeout(() => { window.location.href = 'weixin://'; }, 600);
+      if (isInWeChat()) {
+        // 已在微信内，无法跳转，直接提示粘贴
+        showToast('✅ 已复制！请返回聊天界面，长按粘贴发送');
+      } else {
+        showToast('✅ 已复制「岗位名+链接」，正在打开微信...');
+        setTimeout(() => { window.location.href = 'weixin://'; }, 600);
+      }
     }
 
     function showToast(msg) {
