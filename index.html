@@ -710,14 +710,22 @@
 
     function shareToWeChat() {
       const text = SHARE_COPY_TEXT;
+      // 先确保复制成功（fallbackCopy兼容性最好），再打开微信
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.cssText = 'position:fixed;left:-9999px;opacity:0';
+      document.body.appendChild(ta);
+      ta.select();
+      ta.setSelectionRange(0, text.length);
+      try { document.execCommand('copy'); } catch(e) {}
+      document.body.removeChild(ta);
+      // 同时尝试 Clipboard API
       if (navigator.clipboard && window.isSecureContext) {
-        navigator.clipboard.writeText(text).then(() => openWeChat()).catch(() => { fallbackCopy(text); openWeChat(); });
-      } else { fallbackCopy(text); openWeChat(); }
-    }
-    function openWeChat() {
-      showToast('✅ 已复制，正在打开微信...');
+        navigator.clipboard.writeText(text).catch(() => {});
+      }
+      showToast('✅ 已复制「岗位名称+链接」，正在打开微信...');
       closeShare();
-      setTimeout(() => { window.location.href = 'weixin://'; }, 300);
+      setTimeout(() => { window.location.href = 'weixin://'; }, 600);
     }
     function shareViaSystem() {
       if (navigator.share) {
