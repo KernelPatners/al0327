@@ -574,7 +574,7 @@
     const CARD_ID = 'alva-jobs';
     const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    const CODES = { 'luoluo2026': 'admin', 'gordon2026': 'admin', 'consultant2026': 'consultant' };
+    const CODES = { 'luoluo2026': 'admin', 'gordon2026': 'consultant', 'consultant2026': 'consultant' };
     let currentRole = 'candidate';
     let realtimeSub = null;
 
@@ -584,10 +584,10 @@
       const code = params.get('code');
       if (code && CODES[code]) {
         currentRole = CODES[code];
-        localStorage.setItem('alva_role', currentRole);
+        localStorage.setItem('al0327_role', currentRole);
         window.history.replaceState({}, document.title, window.location.pathname);
       } else {
-        const saved = localStorage.getItem('alva_role');
+        const saved = localStorage.getItem('al0327_role');
         if (saved && (saved === 'admin' || saved === 'consultant')) currentRole = saved;
       }
     })();
@@ -595,7 +595,7 @@
     // === ROLE SYSTEM ===
     function applyRole(role) {
       currentRole = role;
-      localStorage.setItem('alva_role', role);
+      localStorage.setItem('al0327_role', role);
       document.body.className = 'role-' + role;
       const dot = document.getElementById('roleDot');
       const label = document.getElementById('roleLabel');
